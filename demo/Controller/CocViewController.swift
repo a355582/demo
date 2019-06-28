@@ -9,6 +9,7 @@
 import UIKit
 import WebKit
 import SQLite
+import SafariServices
 
 class CocViewController: UIViewController {
 
@@ -38,8 +39,6 @@ class CocViewController: UIViewController {
     var historiesListView: HistoryTableView!
     var tagSearchBar: UISearchBar!
     
-    var infoWebView: WKWebView!
-    
     var playerDetails: PlayerDetail?
     var originSearchBarX: CGFloat = 0
     var originSearchBarY: CGFloat = 0
@@ -54,7 +53,7 @@ class CocViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        let tap: UITapGestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(DismissKeyBoardAndInfoView))
+        let tap: UITapGestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(DismissKeyBoard))
         view.addGestureRecognizer(tap)
         tap.delegate = self
         
@@ -69,12 +68,8 @@ class CocViewController: UIViewController {
         setupAutoLayout()
     }
     
-    @objc func DismissKeyBoardAndInfoView(_ gestureRecognizer: UIGestureRecognizer) {
+    @objc func DismissKeyBoard(_ gestureRecognizer: UIGestureRecognizer) {
         view.endEditing(true)
-        if infoWebView != nil, infoWebView.isHidden == false {
-            infoWebView.alpha = 0
-            infoWebView.isHidden = true
-        }
         if historiesListView != nil, historiesListView.isHidden == false {
             historiesListView.isHidden = true
         }
@@ -166,17 +161,8 @@ class CocViewController: UIViewController {
         self.activityIndicatorView = {
             let activityView = UIActivityIndicatorView()
             activityView.style = UIActivityIndicatorView.Style.whiteLarge
-//            activityView.hidesWhenStopped = true
-//            activityView.isHidden = true
             activityView.translatesAutoresizingMaskIntoConstraints = false
             return activityView
-        }()
-        
-        self.infoWebView = {
-            let webView = WKWebView()
-            webView.translatesAutoresizingMaskIntoConstraints = false
-            webView.isHidden = true
-            return webView
         }()
         
         self.errorMessageLabel = {
@@ -196,7 +182,6 @@ class CocViewController: UIViewController {
         self.view.addSubview(self.collectionView)
         self.view.addSubview(self.historiesListView)
         self.view.addSubview(self.activityIndicatorView)
-        self.view.addSubview(self.infoWebView)
         self.view.addSubview(self.errorMessageLabel)
         
     }
@@ -234,12 +219,6 @@ class CocViewController: UIViewController {
         historiesListView.leadingAnchor.constraint(equalTo: tagSearchBar.leadingAnchor).isActive = true
         historiesListView.trailingAnchor.constraint(equalTo: tagSearchBar.trailingAnchor).isActive = true
     
-        
-        // infoWebView
-        infoWebView.topAnchor.constraint(equalTo: self.collectionView.topAnchor).isActive = true
-        infoWebView.bottomAnchor.constraint(equalTo: self.collectionView.bottomAnchor).isActive = true
-        infoWebView.leadingAnchor.constraint(equalTo: self.collectionView.leadingAnchor).isActive = true
-        infoWebView.trailingAnchor.constraint(equalTo: self.collectionView.trailingAnchor).isActive = true
         
         // errorMessageLabel
         errorMessageLabel.topAnchor.constraint(equalTo: self.collectionView.topAnchor).isActive = true
@@ -328,28 +307,25 @@ extension CocViewController: UICollectionViewDelegate, UICollectionViewDataSourc
         }
         
         if gestureRecognizer.state == .began {
-                let pathStr = item?.name.replacingOccurrences(of: " ", with: "_")
-                let urlStr = "https://clashofclans.fandom.com/wiki/"+"\(pathStr!)"
-                let url = URL(string: urlStr)
-                if let url = url {
-                    infoWebView.load(URLRequest(url: url))
-                    infoWebView.allowsBackForwardNavigationGestures = true
-                }
+            let pathStr = item?.name.replacingOccurrences(of: " ", with: "_")
+            let urlStr = "https://clashofclans.fandom.com/wiki/"+"\(pathStr!)"
+            let url = URL(string: urlStr)
+            if let url = url {
+                let safariVC = SFSafariViewController(url: url)
+                safariVC.delegate = self
+                self.present(safariVC, animated: true, completion: nil)
+                
+            }
             
-                let animator = UIViewPropertyAnimator(duration: 1, curve: .easeOut) {
-                    self.infoWebView.isHidden = false
-                    self.infoWebView.alpha = 1
-                }
-                animator.startAnimation()
-
         }
+
         
     }
     
     
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
         if indexPath.section == 0 {
-            return CGSize(width: collectionView.frame.width , height: collectionView.frame.width * 0.2)
+            return CGSize(width: collectionView.frame.width , height: collectionView.frame.width * 0.3 )
         } else {
             return CGSize(width: collectionView.frame.width * 0.2, height: collectionView.frame.width * 0.2)
         }
@@ -386,15 +362,7 @@ extension CocViewController: UICollectionViewDelegate, UICollectionViewDataSourc
         return CGSize(width: view.frame.width, height: view.frame.height * 0.1)
     }
     
-//    func scrollViewDidScroll(_ scrollView: UIScrollView) {
-//
-//        if let _ = scrollView as? UICollectionView {
-//            let y = scrollView.contentOffset.y
-//            let limith = min(tagSearchBar.frame.height,y)
-//            let rect = CGRect(x: 0, y: originSearchBarY - limith, width: tagSearchBar.frame.width, height: tagSearchBar.frame.height)
-//            tagSearchBar.frame = rect
-//        }
-//    }
+
     
 }
 
@@ -568,6 +536,10 @@ extension CocViewController: UIGestureRecognizerDelegate {
         }
         return true
     }
+    
+}
+
+extension CocViewController: SFSafariViewControllerDelegate {
     
 }
 
